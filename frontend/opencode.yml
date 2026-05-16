@@ -1,0 +1,4 @@
+provider: glm
+model: glm-4.7
+api_key_env: GLM_API_KEY
+
