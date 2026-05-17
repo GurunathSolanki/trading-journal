@@ -1,0 +1,48 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: trading-journal
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "0"
+        run.googleapis.com/cpu-throttling: "true"
+    spec:
+      containers:
+        # Frontend Container (Ingress)
+        - image: FRONTEND_IMAGE_PLACEHOLDER
+          ports:
+            - containerPort: 8080
+          startupProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 0
+            timeoutSeconds: 240
+            periodSeconds: 240
+            failureThreshold: 1
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 256Mi
+
+        # Backend Container (Sidecar)
+        - image: BACKEND_IMAGE_PLACEHOLDER
+          env:
+            - name: DB_URL
+              value: "YOUR_DB_URL"
+            - name: DB_USERNAME
+              value: "YOUR_DB_USERNAME"
+            - name: DB_PASSWORD
+              value: "YOUR_DB_PASSWORD"
+          startupProbe:
+            tcpSocket:
+              port: 8081
+            initialDelaySeconds: 5
+            timeoutSeconds: 240
+            periodSeconds: 240
+            failureThreshold: 3
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 512Mi

@@ -50,5 +50,11 @@ nb-configuration.xml
 **/.env.bak
 **/.env.old
 
+# Claude AI config (local settings with API tokens)
+.claude/
+
+# Deployment generated files
+docker/cloud-run-final.yaml
+
 # Metadata files (Zone identifiers, etc.)
 **:Zone.Identifier
