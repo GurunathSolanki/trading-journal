@@ -1,6 +1,6 @@
 package com.tradingjournal;
 
-import jakarta.transaction.Transactional;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -11,15 +11,18 @@ import java.util.List;
 @Consumes(MediaType.APPLICATION_JSON)
 public class TradeResource {
 
+    @Inject
+    TradeRepository repository;
+
     @GET
     public List<Trade> getAll() {
-        return Trade.listAll();
+        return repository.listAll();
     }
 
     @GET
     @Path("/{id}")
     public Trade getSingle(@PathParam("id") Long id) {
-        Trade entity = Trade.findById(id);
+        Trade entity = repository.findById(id);
         if (entity == null) {
             throw new WebApplicationException("Trade with id of " + id + " does not exist.", 404);
         }
@@ -27,20 +30,18 @@ public class TradeResource {
     }
 
     @POST
-    @Transactional
     public Response create(Trade trade) {
         if (trade.id != null) {
             throw new WebApplicationException("Id was invalidly set on request.", 422);
         }
-        trade.persist();
+        repository.save(trade);
         return Response.ok(trade).status(201).build();
     }
 
     @PUT
     @Path("/{id}")
-    @Transactional
     public Trade update(@PathParam("id") Long id, Trade trade) {
-        Trade entity = Trade.findById(id);
+        Trade entity = repository.findById(id);
         if (entity == null) {
             throw new WebApplicationException("Trade with id of " + id + " does not exist.", 404);
         }
@@ -57,20 +58,19 @@ public class TradeResource {
         entity.pnl = trade.pnl;
         entity.mfProfit = trade.mfProfit;
 
+        repository.update(entity);
         return entity;
     }
 /*
     @DELETE
     @Path("/{id}")
-    @Transactional
     public Response delete(@PathParam("id") Long id) {
-        Trade entity = Trade.findById(id);
+        Trade entity = repository.findById(id);
         if (entity == null) {
             throw new WebApplicationException("Trade with id of " + id + " does not exist.", 404);
         }
-        entity.delete();
+        repository.delete(id);
         return Response.status(204).build();
     }
 */
-    // }
 }
