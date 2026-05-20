@@ -1,6 +1,6 @@
 import React from "react";
 import { useState, useEffect, useRef } from "react";
-import { Edit, ArrowUpDown, Download } from "lucide-react";
+import { Edit, ArrowUpDown, Download, ChevronDown, ChevronUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
@@ -11,6 +11,7 @@ export default function JournalPage({ trades = [], form = {}, handleChange, addT
     const [sortField, setSortField] = useState('entryDate');
     const [sortOrder, setSortOrder] = useState('desc');
     const [filter, setFilter] = useState('all'); // 'all', 'winning', 'losing'
+    const [expandedCards, setExpandedCards] = useState({});
 
     const [displayValues, setDisplayValues] = useState({
         optionsTradingAmount: '',
@@ -80,6 +81,10 @@ export default function JournalPage({ trades = [], form = {}, handleChange, addT
         if (filter === 'losing') return parseFloat(t.totalProfit) <= 0;
         return true;
     });
+
+    const toggleCard = (id) => {
+        setExpandedCards(prev => ({ ...prev, [id]: !prev[id] }));
+    };
 
     const isFormValid = form.entryDate;
 
@@ -201,12 +206,12 @@ export default function JournalPage({ trades = [], form = {}, handleChange, addT
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <CardTitle>Trade History</CardTitle>
                         <div className="flex flex-wrap gap-2">
-                            <select className="px-3 py-1 text-base md:text-sm border border-input bg-background rounded-md" onChange={(e) => setFilter(e.target.value)} value={filter}>
+                            <select className="px-3 py-2 text-base md:text-sm border border-input bg-background rounded-md h-11" onChange={(e) => setFilter(e.target.value)} value={filter}>
                                 <option value="all">All Trades</option>
                                 <option value="winning">Winning Only</option>
                                 <option value="losing">Losing Only</option>
                             </select>
-                            <select className="px-3 py-1 text-base md:text-sm border border-input bg-background rounded-md" onChange={(e) => setSortField(e.target.value)} value={sortField}>
+                            <select className="px-3 py-2 text-base md:text-sm border border-input bg-background rounded-md h-11" onChange={(e) => setSortField(e.target.value)} value={sortField}>
                                 <option value="exitDate">Sort by Date</option>
                                 <option value="totalProfit">Sort by Profit</option>
                                 <option value="percent">Sort by %</option>
@@ -217,7 +222,56 @@ export default function JournalPage({ trades = [], form = {}, handleChange, addT
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <div className="overflow-x-auto" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+                    {/* Mobile Card Layout */}
+                    <div className="md:hidden space-y-3" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+                        {sortedTrades.length === 0 ? (
+                            <div className="p-8 text-center text-muted-foreground italic">No trades yet — add your first trade to start tracking!</div>
+                        ) : (
+                            sortedTrades.map((t) => {
+                                const isExpanded = expandedCards[t.id];
+                                return (
+                                    <div key={t.id} className="border rounded-lg p-3 bg-card space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-medium">{formatDate(t.entryDate)}</span>
+                                                <span className="text-muted-foreground text-sm">→</span>
+                                                <span className="text-sm font-medium">{formatDate(t.exitDate)}</span>
+                                            </div>
+                                            <Button variant="outline" size="sm" onClick={() => startEdit(t)} disabled={submitting}>
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-sm font-semibold ${parseFloat(t.totalProfit) >= 0 ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'}`}>
+                                                {formatIndianNumber(t.totalProfit)}
+                                            </span>
+                                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${parseFloat(t.percent) >= 0 ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'}`}>
+                                                {t.percent}%
+                                            </span>
+                                        </div>
+                                        <button type="button" onClick={() => toggleCard(t.id)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors min-h-[44px]">
+                                            {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                                            {isExpanded ? 'Show less' : 'Show more'}
+                                        </button>
+                                        {isExpanded && (
+                                            <div className="grid grid-cols-2 gap-2 text-sm pt-1 border-t">
+                                                <div><span className="text-muted-foreground">Options:</span> {formatIndianNumber(t.optionsTradingAmount)}</div>
+                                                <div><span className="text-muted-foreground">Req Profit:</span> {formatIndianNumber(t.requiredProfit)}</div>
+                                                <div><span className="text-muted-foreground">Interest:</span> {formatIndianNumber(t.interest)}</div>
+                                                <div><span className="text-muted-foreground">Actual:</span> {formatIndianNumber(t.actualProfit)}</div>
+                                                <div><span className="text-muted-foreground">MF Amount:</span> {formatIndianNumber(t.mfTradingAmount)}</div>
+                                                <div><span className="text-muted-foreground">PnL:</span> {formatIndianNumber(t.pnl)}</div>
+                                                <div><span className="text-muted-foreground">MF Profit:</span> {t.mfProfit}</div>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
+
+                    {/* Desktop Table Layout */}
+                    <div className="hidden md:block overflow-x-auto" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
                         <table className="w-full border-collapse">
                             <thead>
                                 <tr className="border-b">

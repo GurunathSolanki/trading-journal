@@ -7,7 +7,7 @@ import MarginCalculatorPage from "./MarginCalculatorPage";
 import SettingsPage from "./SettingsPage";
 import { ToastContainer, toast } from "react-toastify";
 import { NavLink } from "react-router-dom";
-import { Sun, Moon, LineChart } from "lucide-react";
+import { Sun, Moon, LineChart, LayoutDashboard, BookOpen, BarChart3, Calculator, Settings } from "lucide-react";
 import { getCompleteTrades } from "./lib/tradingUtils";
 import "./App.css";
 
@@ -38,7 +38,6 @@ function AppContent() {
   const [form, setForm] = useState(initialForm);
 
   const [editingId, setEditingId] = useState(null);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem("theme");
     if (saved) return saved === "dark";
@@ -236,30 +235,13 @@ function AppContent() {
               <NavLink to="/settings" className={({ isActive }) => `inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-all duration-200 ${isActive ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'}`}>Settings</NavLink>
             </div>
             <div className="flex items-center space-x-2">
-              <button type="button" onClick={() => setDarkMode(!darkMode)} className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+              <button type="button" onClick={() => setDarkMode(!darkMode)} className="min-h-[44px] min-w-[44px] p-2.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
                 {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
               </button>
-              <div className="sm:hidden">
-                <button type="button" className="inline-flex items-center justify-center p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-                  <svg className="block h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
-                </button>
-              </div>
             </div>
           </div>
         </div>
       </nav>
-
-      <div className={`${mobileMenuOpen ? 'block' : 'hidden'} sm:hidden`} id="mobile-menu">
-        <div className="px-2 pt-2 pb-3 space-y-1 bg-card border-b border-border shadow-sm">
-          <NavLink to="/dashboard" className={({ isActive }) => `block px-3 py-2 rounded-md text-base font-medium ${isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`} onClick={() => setMobileMenuOpen(false)}>Dashboard</NavLink>
-          <NavLink to="/" className={({ isActive }) => `block px-3 py-2 rounded-md text-base font-medium ${isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`} onClick={() => setMobileMenuOpen(false)}>Journal</NavLink>
-          <NavLink to="/performance" className={({ isActive }) => `block px-3 py-2 rounded-md text-base font-medium ${isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`} onClick={() => setMobileMenuOpen(false)}>Performance</NavLink>
-          <NavLink to="/margin-calculator" className={({ isActive }) => `block px-3 py-2 rounded-md text-base font-medium ${isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`} onClick={() => setMobileMenuOpen(false)}>Margin Calculator</NavLink>
-          <NavLink to="/settings" className={({ isActive }) => `block px-3 py-2 rounded-md text-base font-medium ${isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`} onClick={() => setMobileMenuOpen(false)}>Settings</NavLink>
-        </div>
-      </div>
 
       {loading && (
         <div className="flex justify-center items-center py-8">
@@ -267,7 +249,7 @@ function AppContent() {
         </div>
       )}
 
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 pb-24 sm:pb-6">
         <Routes>
           <Route path="/dashboard" element={<DashboardPage trades={getCompleteTradesFiltered(trades)} />} />
           <Route path="/" element={
@@ -289,6 +271,32 @@ function AppContent() {
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </main>
+
+      {/* Bottom Tab Bar - Mobile Only */}
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50">
+        <div className="flex justify-around items-center h-16">
+          <NavLink to="/dashboard" className={({ isActive }) => `flex flex-col items-center justify-center min-h-[48px] px-2 text-xs font-medium transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
+            <LayoutDashboard className="h-5 w-5 mb-0.5" />
+            <span>Dashboard</span>
+          </NavLink>
+          <NavLink to="/" className={({ isActive }) => `flex flex-col items-center justify-center min-h-[48px] px-2 text-xs font-medium transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
+            <BookOpen className="h-5 w-5 mb-0.5" />
+            <span>Journal</span>
+          </NavLink>
+          <NavLink to="/performance" className={({ isActive }) => `flex flex-col items-center justify-center min-h-[48px] px-2 text-xs font-medium transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
+            <BarChart3 className="h-5 w-5 mb-0.5" />
+            <span>Performance</span>
+          </NavLink>
+          <NavLink to="/margin-calculator" className={({ isActive }) => `flex flex-col items-center justify-center min-h-[48px] px-2 text-xs font-medium transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
+            <Calculator className="h-5 w-5 mb-0.5" />
+            <span>Margin</span>
+          </NavLink>
+          <NavLink to="/settings" className={({ isActive }) => `flex flex-col items-center justify-center min-h-[48px] px-2 text-xs font-medium transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
+            <Settings className="h-5 w-5 mb-0.5" />
+            <span>Settings</span>
+          </NavLink>
+        </div>
+      </nav>
 
       <ToastContainer position="top-right" autoClose={3000} />
     </div>
