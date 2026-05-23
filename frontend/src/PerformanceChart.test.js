@@ -13,7 +13,8 @@ jest.mock('chart.js', () => ({
   LineElement: jest.fn(),
   Title: jest.fn(),
   Tooltip: jest.fn(),
-  Legend: jest.fn()
+  Legend: jest.fn(),
+  Filler: jest.fn(),
 }));
 
 jest.mock('react-chartjs-2', () => ({
@@ -49,58 +50,60 @@ describe('PerformanceChart', () => {
   const mockTrades = [
     {
       id: 1,
-      entry_date: '2024-01-01',
-      exit_date: '2024-01-02',
-      options_trading_amount: 10000,
-      total_profit: 300,
-      percent: '1095.00',
+      entryDate: '2024-01-01',
+      exitDate: '2024-01-02',
+      optionsTradingAmount: 10000,
+      totalProfit: 300,
+      percent: '12.00',
+      mfTradingAmount: 2000,
       pnl: 150,
-      mfProfit: '11.00'
+      mfProfit: '8.00',
     },
     {
       id: 2,
-      entry_date: '2024-01-03',
-      exit_date: '2024-01-04',
-      options_trading_amount: 10000,
-      total_profit: 200,
-      percent: '730.00',
+      entryDate: '2024-01-03',
+      exitDate: '2024-01-04',
+      optionsTradingAmount: 10000,
+      totalProfit: 200,
+      percent: '10.00',
+      mfTradingAmount: 2000,
       pnl: 100,
-      mfProfit: '7.30'
-    }
+      mfProfit: '6.00',
+    },
   ];
 
   test('renders performance chart with summary cards', () => {
     render(<PerformanceChart trades={mockTrades} />);
 
-    expect(screen.getByText('Avg Options Return')).toBeInTheDocument();
-    expect(screen.getByText('Avg MF Return')).toBeInTheDocument();
-    expect(screen.getByText('Combined Growth')).toBeInTheDocument();
+    expect(screen.getByText('Avg Options Annualized')).toBeInTheDocument();
+    expect(screen.getByText('Avg MF Annualized')).toBeInTheDocument();
+    expect(screen.getByText('Leader')).toBeInTheDocument();
     expect(screen.getByTestId('line-chart')).toBeInTheDocument();
   });
 
-  test('displays correct average calculations', () => {
+  test('displays correct average annualized returns', () => {
     render(<PerformanceChart trades={mockTrades} />);
 
-    // Avg Options %: (1095.00 + 730.00) / 2 = 912.50
-    const optionsCard = screen.getByText('Avg Options Return').closest('[data-testid="card"]');
-    expect(optionsCard.textContent).toContain('912.50%');
+    // Avg options annualized: (12 + 10) / 2 = 11.00%
+    const optionsCard = screen.getByText('Avg Options Annualized').closest('[data-testid="card"]');
+    expect(optionsCard.textContent).toContain('11.00%');
 
-    // Avg MF %: (11.00 + 7.30) / 2 = 9.15
-    const mfCard = screen.getByText('Avg MF Return').closest('[data-testid="card"]');
-    expect(mfCard.textContent).toContain('9.15%');
+    // Avg MF annualized: (8 + 6) / 2 = 7.00%
+    const mfCard = screen.getByText('Avg MF Annualized').closest('[data-testid="card"]');
+    expect(mfCard.textContent).toContain('7.00%');
   });
 
-  test('renders chart with correct datasets', () => {
+  test('renders chart with 2 datasets (options + MF, no combined)', () => {
     render(<PerformanceChart trades={mockTrades} />);
 
     const chart = screen.getByTestId('line-chart');
-    expect(chart).toHaveAttribute('data-dataset-count', '3');
+    expect(chart).toHaveAttribute('data-dataset-count', '2');
   });
 
   test('renders toggle button', () => {
     render(<PerformanceChart trades={mockTrades} />);
 
-    expect(screen.getByText('Show Absolute Values')).toBeInTheDocument();
+    expect(screen.getByText('Absolute P&L')).toBeInTheDocument();
   });
 
   test('handles empty trades array', () => {
@@ -113,13 +116,14 @@ describe('PerformanceChart', () => {
     const mixedTrades = [
       {
         id: 1,
-        entry_date: '2024-01-01',
-        exit_date: '2024-01-02',
-        options_trading_amount: 10000,
-        total_profit: 300,
-        percent: '1095.00',
+        entryDate: '2024-01-01',
+        exitDate: '2024-01-02',
+        optionsTradingAmount: 10000,
+        totalProfit: 300,
+        percent: '12.00',
+        mfTradingAmount: 2000,
         pnl: -50,
-        mfProfit: '-3.65'
+        mfProfit: '-3.65',
       }
     ];
 
@@ -129,7 +133,7 @@ describe('PerformanceChart', () => {
     expect(screen.getByTestId('arrow-down-icon')).toBeInTheDocument();
   });
 
-  test('calculates cumulative data correctly', () => {
+  test('renders chart with trades data', () => {
     render(<PerformanceChart trades={mockTrades} />);
 
     expect(screen.getByTestId('line-chart')).toBeInTheDocument();

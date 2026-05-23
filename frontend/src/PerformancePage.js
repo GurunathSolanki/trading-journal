@@ -7,7 +7,7 @@ export default function PerformancePage({ trades }) {
     <div className="space-y-8 animate-in">
       <div className="text-center space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">Performance Analysis</h1>
-        <p className="text-muted-foreground">Compare Options vs Mutual Fund performance over time</p>
+        <p className="text-muted-foreground">Compare Options vs Mutual Fund performance — Growth of ₹100</p>
       </div>
       <Card>
         <CardHeader>

@@ -1,5 +1,5 @@
 import { Line } from 'react-chartjs-2';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ArrowUpIcon, ArrowDownIcon, TrendingUp } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
@@ -17,90 +17,128 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
+const formatCurrency = (v) => '₹' + Math.round(v).toLocaleString('en-IN');
+
+const getPLColor = (amount) => (amount >= 0 ? 'text-green-600' : 'text-red-600');
+const getPLIcon = (amount) =>
+  amount >= 0 ? <ArrowUpIcon className="h-4 w-4 text-green-600" /> : <ArrowDownIcon className="h-4 w-4 text-red-600" />;
+
 export default function PerformanceChart({ trades }) {
   const [showAbsolute, setShowAbsolute] = useState(false);
 
-  const getPLColor = (amount) => amount >= 0 ? 'text-green-600' : 'text-red-600';
-  const getPLIcon = (amount) => amount >= 0 ? <ArrowUpIcon className="h-4 w-4 text-green-600" /> : <ArrowDownIcon className="h-4 w-4 text-red-600" />;
+  const sortedTrades = useMemo(
+    () => [...trades].sort((a, b) => new Date(a.exitDate) - new Date(b.exitDate)),
+    [trades],
+  );
 
-  let cumulativeOptions = 0;
-  let cumulativeMF = 0;
-  let cumulativeGrowthPct = 0;
+  const computed = useMemo(() => {
+    let optIdx = 100;
+    let mfIdx = 100;
+    let cumOpt = 0;
+    let cumMf = 0;
+    let sumOptAnn = 0;
+    let sumMfAnn = 0;
+    let optCount = 0;
+    let mfCount = 0;
+    const oGrowth = [];
+    const mGrowth = [];
+    const oCum = [];
+    const mCum = [];
+    const labs = [];
 
-  const cumulativeOptionsData = trades.map(t => cumulativeOptions += parseFloat(t.totalProfit || 0));
-  const cumulativeMFData = trades.map(t => cumulativeMF += parseFloat(t.pnl || 0));
-  const cumulativeGrowthPctData = trades.map(t => {
-      const dailySum = (parseFloat(t.percent || 0) + parseFloat(t.mfProfit || 0));
-      return cumulativeGrowthPct += dailySum;
-  });
+    for (const t of sortedTrades) {
+      const date = new Date(t.exitDate);
+      labs.push(date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }));
+
+      const optAmt = parseFloat(t.optionsTradingAmount) || 0;
+      const mfAmt = parseFloat(t.mfTradingAmount) || 0;
+      const optProfit = parseFloat(t.totalProfit) || 0;
+      const mfPnl = parseFloat(t.pnl) || 0;
+
+      const optActualPct = optAmt > 0 ? (optProfit / optAmt) * 100 : 0;
+      const mfActualPct = mfAmt > 0 ? (mfPnl / mfAmt) * 100 : 0;
+
+      optIdx *= 1 + optActualPct / 100;
+      mfIdx *= 1 + mfActualPct / 100;
+      cumOpt += optProfit;
+      cumMf += mfPnl;
+
+      const optAnn = parseFloat(t.percent || 0);
+      const mfAnn = parseFloat(t.mfProfit || 0);
+      if (optAnn !== 0) { sumOptAnn += optAnn; optCount++; }
+      if (mfAnn !== 0) { sumMfAnn += mfAnn; mfCount++; }
+
+      oGrowth.push(Math.round(optIdx * 100) / 100);
+      mGrowth.push(Math.round(mfIdx * 100) / 100);
+      oCum.push(cumOpt);
+      mCum.push(cumMf);
+    }
+
+    const lastOptGrowth = oGrowth.length > 0 ? oGrowth[oGrowth.length - 1] : 100;
+    const lastMfGrowth = mGrowth.length > 0 ? mGrowth[mGrowth.length - 1] : 100;
+
+    return {
+      labels: labs,
+      optionsGrowth: oGrowth,
+      mfGrowth: mGrowth,
+      optionsCum: oCum,
+      mfCum: mCum,
+      optionsReturnPct: (lastOptGrowth / 100 - 1) * 100,
+      mfReturnPct: (lastMfGrowth / 100 - 1) * 100,
+      optionsTotalPnl: oCum.length > 0 ? oCum[oCum.length - 1] : 0,
+      mfTotalPnl: mCum.length > 0 ? mCum[mCum.length - 1] : 0,
+      avgOptAnn: optCount > 0 ? sumOptAnn / optCount : 0,
+      avgMfAnn: mfCount > 0 ? sumMfAnn / mfCount : 0,
+    };
+  }, [sortedTrades]);
 
   const data = {
-    labels: trades.map(t => {
-      const date = new Date(t.exitDate);
-      return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
-    }),
+    labels: computed.labels,
     datasets: [
       {
-        label: showAbsolute ? "Options Cumulative" : "Options %",
-        data: showAbsolute ? cumulativeOptionsData : trades.map(t => t.percent),
-        borderColor: "hsl(18, 72%, 35%)",
-        backgroundColor: "hsla(18, 72%, 35%, 0.08)",
-        pointBackgroundColor: "hsl(18, 72%, 35%)",
+        label: showAbsolute ? 'Options P&L' : 'Options (Growth of ₹100)',
+        data: showAbsolute ? computed.optionsCum : computed.optionsGrowth,
+        borderColor: 'hsl(18, 72%, 35%)',
+        backgroundColor: 'hsla(18, 72%, 35%, 0.06)',
+        pointBackgroundColor: 'hsl(18, 72%, 35%)',
         pointRadius: 3,
-        pointHoverRadius: 5,
-        tension: 0.35,
-        fill: showAbsolute,
-        borderWidth: 2,
-      },
-      {
-        label: showAbsolute ? "MF Cumulative" : "MF %",
-        data: showAbsolute ? cumulativeMFData : trades.map(t => t.mfProfit),
-        borderColor: "hsl(42, 87%, 50%)",
-        backgroundColor: "hsla(42, 87%, 50%, 0.08)",
-        pointBackgroundColor: "hsl(42, 87%, 50%)",
-        pointRadius: 3,
-        pointHoverRadius: 5,
-        tension: 0.35,
-        fill: showAbsolute,
-        borderWidth: 2,
-      },
-      {
-        label: "Combined Growth",
-        data: showAbsolute
-          ? cumulativeOptionsData.map((v, i) => v + (cumulativeMFData[i] || 0))
-          : cumulativeGrowthPctData,
-        borderColor: "hsl(270, 60%, 55%)",
-        backgroundColor: "hsla(270, 60%, 55%, 0.03)",
-        pointBackgroundColor: "hsl(270, 60%, 55%)",
-        pointRadius: 2,
-        pointHoverRadius: 4,
-        tension: 0.35,
+        pointHoverRadius: 6,
+        tension: 0.3,
         fill: false,
-        borderDash: [6, 3],
-        borderWidth: 1.5,
+        borderWidth: 2.5,
+      },
+      {
+        label: showAbsolute ? 'MF P&L' : 'MF (Growth of ₹100)',
+        data: showAbsolute ? computed.mfCum : computed.mfGrowth,
+        borderColor: 'hsl(42, 87%, 50%)',
+        backgroundColor: 'hsla(42, 87%, 50%, 0.06)',
+        pointBackgroundColor: 'hsl(42, 87%, 50%)',
+        pointRadius: 3,
+        pointHoverRadius: 6,
+        tension: 0.3,
+        fill: false,
+        borderWidth: 2.5,
       },
     ],
   };
 
+  const isGrowthMode = !showAbsolute;
+  const winner = computed.avgOptAnn > computed.avgMfAnn ? 'Options' : computed.avgMfAnn > computed.avgOptAnn ? 'MF' : 'Tied';
+
   const options = {
     responsive: true,
     maintainAspectRatio: false,
-    interaction: {
-      intersect: false,
-      mode: 'index',
-    },
+    interaction: { intersect: false, mode: 'index' },
     plugins: {
       legend: {
         position: 'top',
-        labels: {
-          usePointStyle: true,
-          padding: 20,
-          font: { family: 'Inter, sans-serif', size: 12 },
-        }
+        labels: { usePointStyle: true, padding: 20, font: { family: 'Inter, sans-serif', size: 12 } },
       },
       title: {
         display: true,
-        text: showAbsolute ? 'Options vs Mutual Funds (Cumulative)' : 'Options vs Mutual Funds (Annualized %)',
+        text: isGrowthMode
+          ? 'Options vs Mutual Funds — Growth of ₹100'
+          : 'Options vs Mutual Funds — Cumulative P&L',
         font: { family: 'Inter, sans-serif', size: 14, weight: '600' },
         padding: { bottom: 20 },
         color: 'hsl(24, 10%, 10%)',
@@ -112,40 +150,34 @@ export default function PerformanceChart({ trades }) {
         padding: 12,
         cornerRadius: 8,
         callbacks: {
-          label: function (context) {
-            return showAbsolute ? `${context.dataset.label}: ₹${context.parsed.y.toLocaleString('en-IN')}` : `${context.dataset.label}: ${context.parsed.y.toFixed(2)}%`;
-          }
-        }
-      }
+          label(context) {
+            const val = context.parsed.y;
+            if (isGrowthMode) {
+              return `${context.dataset.label}: ₹${val.toFixed(2)}`;
+            }
+            return `${context.dataset.label}: ${formatCurrency(val)}`;
+          },
+        },
+      },
     },
     scales: {
       x: {
-        grid: {
-          display: false,
-        },
-        ticks: {
-          font: { family: 'Inter, sans-serif', size: 11 },
-          maxTicksLimit: 10,
-        }
+        grid: { display: false },
+        ticks: { font: { family: 'Inter, sans-serif', size: 11 }, maxTicksLimit: 12 },
       },
       y: {
         beginAtZero: false,
-        grid: {
-          color: 'hsla(30, 15%, 88%, 0.5)',
-        },
+        grid: { color: 'hsla(30, 15%, 88%, 0.5)' },
         ticks: {
           font: { family: 'JetBrains Mono, monospace', size: 11 },
-          callback: function (value) {
-            return showAbsolute ? '₹' + value.toLocaleString('en-IN') : value + '%';
-          }
-        }
-      }
-    }
+          callback(value) {
+            if (isGrowthMode) return '₹' + value.toFixed(1);
+            return formatCurrency(value);
+          },
+        },
+      },
+    },
   };
-
-  const avgOptionsPercent = trades.length > 0 ? (trades.reduce((sum, t) => sum + parseFloat(t.percent || 0), 0) / trades.length).toFixed(2) : "0.00";
-  const avgMFPercent = trades.length > 0 ? (trades.reduce((sum, t) => sum + parseFloat(t.mfProfit || 0), 0) / trades.length).toFixed(2) : "0.00";
-  const totalGrowthPercent = (parseFloat(avgOptionsPercent) + parseFloat(avgMFPercent)).toFixed(2);
 
   return (
     <div className="space-y-6">
@@ -153,43 +185,45 @@ export default function PerformanceChart({ trades }) {
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg Options Return</CardTitle>
+              <CardTitle className="text-sm font-medium">Avg Options Annualized</CardTitle>
               <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30">
                 <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold font-mono-data ${getPLColor(avgOptionsPercent)}`}>
-                {getPLIcon(avgOptionsPercent)}
-                <span className="ml-1">{avgOptionsPercent}%</span>
+              <div className={`text-2xl font-bold font-mono-data ${getPLColor(computed.avgOptAnn)}`}>
+                {getPLIcon(computed.avgOptAnn)}
+                <span className="ml-1">{computed.avgOptAnn.toFixed(2)}%</span>
               </div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg MF Return</CardTitle>
+              <CardTitle className="text-sm font-medium">Avg MF Annualized</CardTitle>
               <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30">
                 <TrendingUp className="h-4 w-4 text-purple-600 dark:text-purple-400" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold font-mono-data ${getPLColor(avgMFPercent)}`}>
-                {getPLIcon(avgMFPercent)}
-                <span className="ml-1">{avgMFPercent}%</span>
+              <div className={`text-2xl font-bold font-mono-data ${getPLColor(computed.avgMfAnn)}`}>
+                {getPLIcon(computed.avgMfAnn)}
+                <span className="ml-1">{computed.avgMfAnn.toFixed(2)}%</span>
               </div>
             </CardContent>
           </Card>
-          <Card className="border-indigo-200/50 dark:border-indigo-900/50 bg-gradient-to-br from-indigo-50/50 to-transparent dark:from-indigo-950/20 dark:to-transparent">
+          <Card className="border-amber-200/50 dark:border-amber-900/50 bg-gradient-to-br from-amber-50/50 to-transparent dark:from-amber-950/20 dark:to-transparent">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Combined Growth</CardTitle>
-              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30">
-                <TrendingUp className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+              <CardTitle className="text-sm font-medium">Leader</CardTitle>
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30">
+                <TrendingUp className="h-4 w-4 text-amber-600 dark:text-amber-400" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold font-mono-data ${getPLColor(totalGrowthPercent)}`}>
-                {getPLIcon(totalGrowthPercent)}
-                <span className="ml-1">{totalGrowthPercent}%</span>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl font-bold">{winner}</span>
+                <span className={`text-sm font-medium ${getPLColor(computed.avgOptAnn - computed.avgMfAnn)}`}>
+                  {` ${Math.abs(computed.avgOptAnn - computed.avgMfAnn).toFixed(2)}% ahead`}
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -198,7 +232,7 @@ export default function PerformanceChart({ trades }) {
 
       <div className="flex justify-center">
         <Button variant="outline" onClick={() => setShowAbsolute(!showAbsolute)}>
-          {showAbsolute ? 'Show Percentages' : 'Show Absolute Values'}
+          {showAbsolute ? 'Growth of ₹100' : 'Absolute P&L'}
         </Button>
       </div>
 
