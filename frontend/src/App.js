@@ -228,7 +228,7 @@ function AppContent() {
                   <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-primary/10 text-primary">
                     <LineChart className="h-5 w-5" strokeWidth={2.5} />
                   </div>
-                  <span className="hidden sm:inline tracking-tight">Trading Journal</span>
+                  <span className="inline tracking-tight">Trading Journal</span>
                 </div>
               </div>
             </div>
