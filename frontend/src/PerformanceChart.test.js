@@ -27,7 +27,8 @@ jest.mock('react-chartjs-2', () => ({
 // Mock lucide-react icons
 jest.mock('lucide-react', () => ({
   ArrowUpIcon: () => <div data-testid="arrow-up-icon">↑</div>,
-  ArrowDownIcon: () => <div data-testid="arrow-down-icon">↓</div>
+  ArrowDownIcon: () => <div data-testid="arrow-down-icon">↓</div>,
+  TrendingUp: () => <div data-testid="trending-up-icon">↑</div>
 }));
 
 // Mock UI components
@@ -54,7 +55,7 @@ describe('PerformanceChart', () => {
       total_profit: 300,
       percent: '1095.00',
       pnl: 150,
-      mf_profit: '11.00'
+      mfProfit: '11.00'
     },
     {
       id: 2,
@@ -64,16 +65,16 @@ describe('PerformanceChart', () => {
       total_profit: 200,
       percent: '730.00',
       pnl: 100,
-      mf_profit: '7.30'
+      mfProfit: '7.30'
     }
   ];
 
   test('renders performance chart with summary cards', () => {
     render(<PerformanceChart trades={mockTrades} />);
 
-    expect(screen.getByText('Avg Options %')).toBeInTheDocument();
-    expect(screen.getByText('Avg MF %')).toBeInTheDocument();
-    expect(screen.getByText('Combined Growth %')).toBeInTheDocument();
+    expect(screen.getByText('Avg Options Return')).toBeInTheDocument();
+    expect(screen.getByText('Avg MF Return')).toBeInTheDocument();
+    expect(screen.getByText('Combined Growth')).toBeInTheDocument();
     expect(screen.getByTestId('line-chart')).toBeInTheDocument();
   });
 
@@ -81,30 +82,31 @@ describe('PerformanceChart', () => {
     render(<PerformanceChart trades={mockTrades} />);
 
     // Avg Options %: (1095.00 + 730.00) / 2 = 912.50
-    expect(screen.getByText('912.50%')).toBeInTheDocument();
+    const optionsCard = screen.getByText('Avg Options Return').closest('[data-testid="card"]');
+    expect(optionsCard.textContent).toContain('912.50%');
 
     // Avg MF %: (11.00 + 7.30) / 2 = 9.15
-    expect(screen.getByText('9.15%')).toBeInTheDocument();
+    const mfCard = screen.getByText('Avg MF Return').closest('[data-testid="card"]');
+    expect(mfCard.textContent).toContain('9.15%');
   });
 
   test('renders chart with correct datasets', () => {
     render(<PerformanceChart trades={mockTrades} />);
 
     const chart = screen.getByTestId('line-chart');
-    expect(chart).toHaveAttribute('data-dataset-count', '3'); // Options, MF, and Cumulative
+    expect(chart).toHaveAttribute('data-dataset-count', '3');
   });
 
   test('renders toggle button', () => {
     render(<PerformanceChart trades={mockTrades} />);
 
-    expect(screen.getByText('Toggle to Absolute Values')).toBeInTheDocument();
+    expect(screen.getByText('Show Absolute Values')).toBeInTheDocument();
   });
 
   test('handles empty trades array', () => {
     render(<PerformanceChart trades={[]} />);
 
-    expect(screen.getAllByText('0.00%')).toHaveLength(3); // options, MF, and combined show 0.00%
-    expect(screen.getByTestId('line-chart')).toBeInTheDocument();
+    expect(screen.getByText('Add trades to see your performance chart')).toBeInTheDocument();
   });
 
   test('displays correct icons for positive/negative values', () => {
@@ -117,13 +119,12 @@ describe('PerformanceChart', () => {
         total_profit: 300,
         percent: '1095.00',
         pnl: -50,
-        mf_profit: '-3.65'
+        mfProfit: '-3.65'
       }
     ];
 
     render(<PerformanceChart trades={mixedTrades} />);
 
-    // Should have both up and down arrows (multiple up arrows now with Combined Growth)
     expect(screen.getAllByTestId('arrow-up-icon').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByTestId('arrow-down-icon')).toBeInTheDocument();
   });
@@ -131,8 +132,6 @@ describe('PerformanceChart', () => {
   test('calculates cumulative data correctly', () => {
     render(<PerformanceChart trades={mockTrades} />);
 
-    // The chart should be rendered with cumulative calculations
-    // This is tested implicitly through the Line component mock
     expect(screen.getByTestId('line-chart')).toBeInTheDocument();
   });
 });

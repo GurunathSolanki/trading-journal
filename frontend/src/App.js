@@ -55,8 +55,6 @@ function AppContent() {
   }, [darkMode]);
 
   const getCompleteTradesFiltered = (tradesArray) => {
-    // Map backend snake_case or camelCase correctly if needed
-    // The backend uses camelCase for the entity fields (entryDate, etc.)
     return getCompleteTrades(tradesArray).sort((a, b) => new Date(a.exitDate) - new Date(b.exitDate));
   };
 
@@ -156,7 +154,6 @@ function AppContent() {
   function handleChange(field, value) {
     const updatedForm = { ...form, [field]: value };
 
-    // Auto-calc requiredProfit if possible
     if (updatedForm.entryDate && updatedForm.exitDate && updatedForm.optionsTradingAmount) {
       updatedForm.requiredProfit = calculateRequiredProfit(
         updatedForm.entryDate,
@@ -165,12 +162,10 @@ function AppContent() {
       );
     }
 
-    // Auto-calc totalProfit (interest + actualProfit)
     const interestVal = Number(updatedForm.interest) || 0;
     const actualProfitVal = Number(updatedForm.actualProfit) || 0;
     updatedForm.totalProfit = interestVal + actualProfitVal;
 
-    // Auto-calc percent (to 2 decimals)
     if (updatedForm.entryDate && updatedForm.exitDate && updatedForm.optionsTradingAmount) {
       const start = new Date(updatedForm.entryDate);
       const end = new Date(updatedForm.exitDate);
@@ -186,7 +181,6 @@ function AppContent() {
       }
     }
 
-    // Auto-calc mfProfit (to 2 decimals)
     if (updatedForm.entryDate && updatedForm.exitDate && updatedForm.mfTradingAmount && updatedForm.pnl) {
       const start = new Date(updatedForm.entryDate);
       const end = new Date(updatedForm.exitDate);
@@ -214,28 +208,55 @@ function AppContent() {
     return Math.round(result);
   }
 
+  const navLinks = [
+    { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { to: "/", label: "Journal", icon: BookOpen },
+    { to: "/performance", label: "Performance", icon: BarChart3 },
+    { to: "/margin-calculator", label: "Calculator", icon: Calculator },
+    { to: "/settings", label: "Settings", icon: Settings },
+  ];
+
   return (
-    <div className="min-h-screen bg-background font-sans">
-      <nav className="bg-card border-b border-border shadow-sm">
+    <div className="min-h-screen bg-background font-sans gradient-mesh">
+      {/* Top Navigation */}
+      <nav className="sticky top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
-            <div className="flex items-center">
+            <div className="flex items-center gap-2">
               <div className="flex-shrink-0 flex items-center">
-                <div className="flex items-center gap-2 text-2xl font-bold text-primary">
-                  <LineChart className="h-8 w-8" />
-                  <span>Trading Journal</span>
+                <div className="flex items-center gap-2.5 text-xl font-bold text-primary">
+                  <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-primary/10 text-primary">
+                    <LineChart className="h-5 w-5" strokeWidth={2.5} />
+                  </div>
+                  <span className="hidden sm:inline tracking-tight">Trading Journal</span>
                 </div>
               </div>
             </div>
-            <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              <NavLink to="/dashboard" className={({ isActive }) => `inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-all duration-200 ${isActive ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'}`}>Dashboard</NavLink>
-              <NavLink to="/" className={({ isActive }) => `inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-all duration-200 ${isActive ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'}`}>Journal</NavLink>
-              <NavLink to="/performance" className={({ isActive }) => `inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-all duration-200 ${isActive ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'}`}>Performance</NavLink>
-              <NavLink to="/margin-calculator" className={({ isActive }) => `inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-all duration-200 ${isActive ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'}`}>Margin Calculator</NavLink>
-              <NavLink to="/settings" className={({ isActive }) => `inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-all duration-200 ${isActive ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'}`}>Settings</NavLink>
+            <div className="hidden sm:flex sm:items-center sm:gap-1">
+              {navLinks.map((link) => (
+                <NavLink
+                  key={link.to}
+                  to={link.to}
+                  className={({ isActive }) =>
+                    `inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                      isActive
+                        ? 'bg-primary/10 text-primary shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-accent/10'
+                    }`
+                  }
+                >
+                  <link.icon className="h-4 w-4" />
+                  {link.label}
+                </NavLink>
+              ))}
             </div>
-            <div className="flex items-center space-x-2">
-              <button type="button" onClick={() => setDarkMode(!darkMode)} className="min-h-[44px] min-w-[44px] p-2.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setDarkMode(!darkMode)}
+                className="flex items-center justify-center w-10 h-10 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent/10 transition-all duration-200"
+                aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+              >
                 {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
               </button>
             </div>
@@ -243,13 +264,18 @@ function AppContent() {
         </div>
       </nav>
 
+      {/* Loading State */}
       {loading && (
-        <div className="flex justify-center items-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="flex flex-col justify-center items-center py-16 gap-4 animate-fade-in">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-10 w-10 border-[3px] border-primary/20 border-t-primary"></div>
+          </div>
+          <p className="text-sm text-muted-foreground font-medium animate-pulse">Loading trades...</p>
         </div>
       )}
 
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 pb-24 sm:pb-6">
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 pb-28 sm:pb-10">
         <Routes>
           <Route path="/dashboard" element={<DashboardPage trades={getCompleteTradesFiltered(trades)} />} />
           <Route path="/" element={
@@ -273,32 +299,38 @@ function AppContent() {
       </main>
 
       {/* Bottom Tab Bar - Mobile Only */}
-      <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50">
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-xl border-t border-border/60 safe-area-pb">
         <div className="flex justify-around items-center h-16">
-          <NavLink to="/dashboard" className={({ isActive }) => `flex flex-col items-center justify-center min-h-[48px] px-2 text-xs font-medium transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
-            <LayoutDashboard className="h-5 w-5 mb-0.5" />
-            <span>Dashboard</span>
-          </NavLink>
-          <NavLink to="/" className={({ isActive }) => `flex flex-col items-center justify-center min-h-[48px] px-2 text-xs font-medium transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
-            <BookOpen className="h-5 w-5 mb-0.5" />
-            <span>Journal</span>
-          </NavLink>
-          <NavLink to="/performance" className={({ isActive }) => `flex flex-col items-center justify-center min-h-[48px] px-2 text-xs font-medium transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
-            <BarChart3 className="h-5 w-5 mb-0.5" />
-            <span>Performance</span>
-          </NavLink>
-          <NavLink to="/margin-calculator" className={({ isActive }) => `flex flex-col items-center justify-center min-h-[48px] px-2 text-xs font-medium transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
-            <Calculator className="h-5 w-5 mb-0.5" />
-            <span>Margin</span>
-          </NavLink>
-          <NavLink to="/settings" className={({ isActive }) => `flex flex-col items-center justify-center min-h-[48px] px-2 text-xs font-medium transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
-            <Settings className="h-5 w-5 mb-0.5" />
-            <span>Settings</span>
-          </NavLink>
+          {navLinks.map((link) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              className={({ isActive }) =>
+                `flex flex-col items-center justify-center min-h-[48px] px-2 text-xs font-medium transition-all duration-200 ${
+                  isActive ? 'text-primary scale-105' : 'text-muted-foreground'
+                }`
+              }
+            >
+              <link.icon className="h-[22px] w-[22px] mb-0.5" strokeWidth={2} />
+              <span>{link.label}</span>
+            </NavLink>
+          ))}
         </div>
       </nav>
 
-      <ToastContainer position="top-right" autoClose={3000} />
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme={darkMode ? "dark" : "light"}
+        toastClassName="rounded-xl border border-border shadow-lg"
+      />
     </div>
   );
 }
