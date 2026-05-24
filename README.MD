@@ -83,8 +83,7 @@ npm test -- --watchAll=false --runInBand
 ### Technologies Used
 
 - Quarkus - Supersonic Subatomic Java Framework
-- Hibernate ORM with Panache
-- PostgreSQL database
+- PostgreSQL database (via JDBC driver)
 - REST API endpoints
 
 ### Running the Backend
