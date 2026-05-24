@@ -31,7 +31,10 @@ gcloud services enable run.googleapis.com artifactregistry.googleapis.com
 # JVM mode (local Docker build — faster build, slower cold start)
 ./docker/deploy.sh
 
-# Native mode (Cloud Build — slower build, ~0s cold start)
+# Local Native mode (local containerized native build — fast compilation, ~0s cold start)
+./docker/deploy.sh --local-native
+
+# Cloud Build Native mode (Cloud Build native build — slow build, ~0s cold start)
 ./docker/deploy.sh --cloud-build
 ```
 
@@ -51,7 +54,8 @@ The script automatically:
 | Mode | Command | Build Location | Backend Image | Startup |
 |---|---|---|---|---|
 | **JVM** | `./docker/deploy.sh` | Local Docker | `backend` (JDK 17) | ~5-10s cold start |
-| **Native** | `./docker/deploy.sh --cloud-build` | Cloud Build | `backend-native` (Mandrel 25) | ~0s cold start |
+| **Local Native** | `./docker/deploy.sh --local-native` | Local Maven + Docker | `backend-native` (GraalVM 17) | ~0s cold start |
+| **Cloud Build Native** | `./docker/deploy.sh --cloud-build` | Cloud Build | `backend-native` (Mandrel 25) | ~0s cold start |
 
 ## Make Public (First Deploy Only)
 
@@ -86,6 +90,7 @@ For a personal trading journal (< 500 requests/month), this stays well within Cl
 | `docker/nginx.conf` | SPA routing + `/api` proxy to localhost:8081 |
 | `docker/backend-jvm.Dockerfile` | Multi-stage build: Maven 3.9 → UBI9 OpenJDK 17 |
 | `docker/backend-native.Dockerfile` | Multi-stage build: Mandrel 25 native + ubi-minimal |
+| `docker/backend-native-local.Dockerfile` | Packaging for locally pre-built Quarkus native executable |
 | `docker/cloudbuild.yaml` | Cloud Build config for native image pipeline |
 | `docker/cloud-run.yaml` | Cloud Run service definition with probes |
 | `docker/deploy.sh` | Full deployment automation script |

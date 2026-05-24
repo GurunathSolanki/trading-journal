@@ -15,8 +15,10 @@ REPO_NAME="trading-journal"
 SERVICE_NAME="trading-journal"
 
 USE_CLOUD_BUILD=false
+USE_LOCAL_NATIVE=false
 for arg in "$@"; do
   if [ "$arg" = "--cloud-build" ]; then USE_CLOUD_BUILD=true; fi
+  if [ "$arg" = "--local-native" ]; then USE_LOCAL_NATIVE=true; fi
 done
 
 if [ "$USE_CLOUD_BUILD" = true ]; then
@@ -24,6 +26,11 @@ if [ "$USE_CLOUD_BUILD" = true ]; then
   BACKEND_IMAGE="$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/backend-native"
   FRONTEND_IMAGE="$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/frontend"
   MODE="Cloud Build (native)"
+elif [ "$USE_LOCAL_NATIVE" = true ]; then
+  BUILD_TAG="latest"
+  BACKEND_IMAGE="$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/backend-native"
+  FRONTEND_IMAGE="$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/frontend"
+  MODE="Local Native (Host Maven + Docker)"
 else
   BUILD_TAG="latest"
   BACKEND_IMAGE="$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/backend"
@@ -69,6 +76,19 @@ if [ "$USE_CLOUD_BUILD" = true ]; then
     --region=$REGION
   BACKEND_IMAGE="$BACKEND_IMAGE:$BUILD_TAG"
   FRONTEND_IMAGE="$FRONTEND_IMAGE:$BUILD_TAG"
+elif [ "$USE_LOCAL_NATIVE" = true ]; then
+  echo "[3/4] Local Native Build..."
+  command -v docker >/dev/null 2>&1 || { echo "ERROR: docker not found. Please enable Docker Desktop WSL integration."; exit 1; }
+  cd "$ROOT_DIR"
+  
+  echo "  Compiling Quarkus native executable locally..."
+  ./backend/mvnw -f backend/pom.xml clean package -Dnative -Dquarkus.native.container-build=true -DskipTests
+  
+  echo "  Packaging native executable into Docker image..."
+  docker build -f docker/backend-native-local.Dockerfile -t "$BACKEND_IMAGE" . && docker push "$BACKEND_IMAGE"
+  
+  echo "  Packaging frontend into Docker image..."
+  docker build -f docker/frontend.Dockerfile -t "$FRONTEND_IMAGE" . && docker push "$FRONTEND_IMAGE"
 else
   echo "[3/4] Local Docker build (JVM)..."
   command -v docker >/dev/null 2>&1 || { echo "ERROR: docker not found."; exit 1; }
