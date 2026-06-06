@@ -52,14 +52,22 @@ export default function JournalPage({ trades = [], form = {}, handleChange, addT
 
     useEffect(() => {
         const fieldsToFormat = ['optionsTradingAmount', 'interest', 'actualProfit', 'mfTradingAmount', 'pnl'];
-        const newDisplayValues = {};
-        fieldsToFormat.forEach(field => {
-            const value = form[field];
-            newDisplayValues[field] = value !== undefined && value !== null && value !== ''
-                ? formatIndianNumber(value)
-                : '';
+        setDisplayValues(prev => {
+            const newDisplayValues = {};
+            fieldsToFormat.forEach(field => {
+                // Don't overwrite while the user is mid-typing a negative number
+                const currentDisplay = prev[field];
+                if (currentDisplay === '-' || currentDisplay === '-.') {
+                    newDisplayValues[field] = currentDisplay;
+                    return;
+                }
+                const value = form[field];
+                newDisplayValues[field] = value !== undefined && value !== null && value !== ''
+                    ? formatIndianNumber(value)
+                    : '';
+            });
+            return newDisplayValues;
         });
-        setDisplayValues(newDisplayValues);
     }, [form]);
 
     const formatDate = (dateString) => {
